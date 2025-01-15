@@ -60,6 +60,7 @@ contract BasicForwarder is EIP712 {
         uint256 gasLeft;
         uint256 value = request.value; // in wei
         address target = request.target;
+        // @audit-info Last 20 bytes are the original sender
         bytes memory payload = abi.encodePacked(request.data, request.from);
         uint256 forwardGas = request.gas;
         assembly {
