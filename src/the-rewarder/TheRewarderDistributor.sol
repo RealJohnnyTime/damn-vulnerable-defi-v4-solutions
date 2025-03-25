@@ -87,15 +87,24 @@ contract TheRewarderDistributor {
         for (uint256 i = 0; i < inputClaims.length; i++) {
             inputClaim = inputClaims[i];
 
+            // @audit-info always 0, but we don't care
             uint256 wordPosition = inputClaim.batchNumber / 256;
             uint256 bitPosition = inputClaim.batchNumber % 256;
 
+            // @audit-info first iteration we enter here since token=0 and inputTokens[0]=DVT
+            // @audit-issue In the second iteration since token & inputTokens[1]= DVT, we don't enter here!
             if (token != inputTokens[inputClaim.tokenIndex]) {
+                // @audit-issue first iteration we skip this since token=0
                 if (address(token) != address(0)) {
+                    // @audit-issue we're able to skip the _setClaimed call in the first iteration and
+                    // The following iterations as long as we have multiple claims with the same token!!!
+                    // That way we avoid the bitmap check and the revert here :)
                     if (!_setClaimed(token, amount, wordPosition, bitsSet)) revert AlreadyClaimed();
                 }
 
+                // @audit-info After first iteration: token=DVT
                 token = inputTokens[inputClaim.tokenIndex];
+
                 bitsSet = 1 << bitPosition; // set bit at given position
                 amount = inputClaim.amount;
             } else {
@@ -119,6 +128,7 @@ contract TheRewarderDistributor {
 
     function _setClaimed(IERC20 token, uint256 amount, uint256 wordPosition, uint256 newBits) private returns (bool) {
         uint256 currentWord = distributions[token].claims[msg.sender][wordPosition];
+        
         if ((currentWord & newBits) != 0) return false;
 
         // update state

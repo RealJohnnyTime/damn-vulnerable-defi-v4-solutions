@@ -12,6 +12,8 @@ contract FlashLoanReceiver is IERC3156FlashBorrower {
         pool = _pool;
     }
 
+    // @audit-issue access control problem, it ignores the first address which is essentially the initiator of the flash loan
+    // This means that anyone can request flash loans on behalf of this contract and make it pay the fee to the pool
     function onFlashLoan(address, address token, uint256 amount, uint256 fee, bytes calldata)
         external
         returns (bytes32)

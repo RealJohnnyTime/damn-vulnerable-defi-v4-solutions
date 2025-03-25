@@ -20,21 +20,25 @@ contract SimpleGovernance is ISimpleGovernance {
         _actionCounter = 1;
     }
 
+    // @audit-info an extion is an external call to a target contract with a value and data
     function queueAction(address target, uint128 value, bytes calldata data) external returns (uint256 actionId) {
         if (!_hasEnoughVotes(msg.sender)) {
             revert NotEnoughVotes(msg.sender);
         }
 
+        // @audit-ok can't call self
         if (target == address(this)) {
             revert InvalidTarget();
         }
 
+        // @audit-ok can call only contracts (not EOAs)
         if (data.length > 0 && target.code.length == 0) {
             revert TargetMustHaveCode();
         }
 
         actionId = _actionCounter;
 
+        // @audit-info Save the new governance action in state
         _actions[actionId] = GovernanceAction({
             target: target,
             value: value,
@@ -51,6 +55,7 @@ contract SimpleGovernance is ISimpleGovernance {
     }
 
     function executeAction(uint256 actionId) external payable returns (bytes memory) {
+        // @audit-info only if action wasn't executed
         if (!_canBeExecuted(actionId)) {
             revert CannotExecute(actionId);
         }
@@ -87,16 +92,23 @@ contract SimpleGovernance is ISimpleGovernance {
     function _canBeExecuted(uint256 actionId) private view returns (bool) {
         GovernanceAction memory actionToExecute = _actions[actionId];
 
+        // @audit-ok if action do not exist this will be 0
         if (actionToExecute.proposedAt == 0) return false;
 
+        // @audit-info timeDelta is the time passed since the action was proposed
         uint64 timeDelta;
         unchecked {
             timeDelta = uint64(block.timestamp) - actionToExecute.proposedAt;
         }
 
+        // @audit-info if the action was never executed (executedAt == 0) and enough time has passed
         return actionToExecute.executedAt == 0 && timeDelta >= ACTION_DELAY_IN_SECONDS;
     }
-
+    
+    // @audit-info checks if the sender has more than half of the total supply of the voting token
+    // @audit-issue this is a broken governance mechanism. Only if 1 actor control more than 50%
+    // Of the token supply he can make proposals. Also it's possible to posses more than 50% of the token supply
+    // Just by taking a flashloan from the pool with 0% fee and pass a proposal to drain the pool
     function _hasEnoughVotes(address who) private view returns (bool) {
         uint256 balance = _votingToken.getVotes(who);
         uint256 halfTotalSupply = _votingToken.totalSupply() / 2;

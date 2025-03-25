@@ -21,6 +21,7 @@ contract SelfiePool is IERC3156FlashLender, ReentrancyGuard {
 
     event EmergencyExit(address indexed receiver, uint256 amount);
 
+    // @audit-info Only the governance address that is set in the constructor
     modifier onlyGovernance() {
         if (msg.sender != address(governance)) {
             revert CallerNotGovernance();
@@ -33,6 +34,7 @@ contract SelfiePool is IERC3156FlashLender, ReentrancyGuard {
         governance = _governance;
     }
 
+    // @audit-info max flash loan is the balance of the token in the pool
     function maxFlashLoan(address _token) external view returns (uint256) {
         if (address(token) == _token) {
             return token.balanceOf(address(this));
@@ -40,6 +42,7 @@ contract SelfiePool is IERC3156FlashLender, ReentrancyGuard {
         return 0;
     }
 
+    // @audit-info the flashloan fee is always 0 for all tokens
     function flashFee(address _token, uint256) external view returns (uint256) {
         if (address(token) != _token) {
             revert UnsupportedCurrency();
@@ -56,11 +59,13 @@ contract SelfiePool is IERC3156FlashLender, ReentrancyGuard {
             revert UnsupportedCurrency();
         }
 
+        // @audit-info receiver need to implement the onFlashLoan function and pay back the loan
         token.transfer(address(_receiver), _amount);
         if (_receiver.onFlashLoan(msg.sender, _token, _amount, 0, _data) != CALLBACK_SUCCESS) {
             revert CallbackFailed();
         }
 
+        // @audit-ok trying to transfer the amount back to the pool, if it fails, it will revert
         if (!token.transferFrom(address(_receiver), address(this), _amount)) {
             revert RepayFailed();
         }
@@ -68,6 +73,8 @@ contract SelfiePool is IERC3156FlashLender, ReentrancyGuard {
         return true;
     }
 
+    // @audit interesting way to drain the pool
+    // @audit can we be governance?
     function emergencyExit(address receiver) external onlyGovernance {
         uint256 amount = token.balanceOf(address(this));
         token.transfer(receiver, amount);

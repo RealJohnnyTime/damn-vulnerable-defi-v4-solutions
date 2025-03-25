@@ -34,9 +34,7 @@ contract SideEntranceLenderPool {
 
     function flashLoan(uint256 amount) external {
         uint256 balanceBefore = address(this).balance;
-
         IFlashLoanEtherReceiver(msg.sender).execute{value: amount}();
-
         if (address(this).balance < balanceBefore) {
             revert RepayFailed();
         }
