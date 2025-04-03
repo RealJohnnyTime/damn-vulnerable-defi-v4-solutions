@@ -21,12 +21,16 @@ contract Exchange is ReentrancyGuard {
     event TokenBought(address indexed buyer, uint256 tokenId, uint256 price);
     event TokenSold(address indexed seller, uint256 tokenId, uint256 price);
 
+    /// @notice Initializes the exchange with an oracle and deploys a new NFT contract
+    /// @param _oracle The address of the TrustfulOracle contract
     constructor(address _oracle) payable {
         token = new DamnValuableNFT();
         token.renounceOwnership();
         oracle = TrustfulOracle(_oracle);
     }
 
+    /// @notice Allows users to buy an NFT at the oracle-determined price
+    /// @return id The ID of the minted NFT
     function buyOne() external payable nonReentrant returns (uint256 id) {
         if (msg.value == 0) {
             revert InvalidPayment();
@@ -46,6 +50,8 @@ contract Exchange is ReentrancyGuard {
         emit TokenBought(msg.sender, id, price);
     }
 
+    /// @notice Allows users to sell their NFT back to the exchange at the oracle-determined price
+    /// @param id The ID of the NFT to sell
     function sellOne(uint256 id) external nonReentrant {
         if (msg.sender != token.ownerOf(id)) {
             revert SellerNotOwner(id);
@@ -69,5 +75,6 @@ contract Exchange is ReentrancyGuard {
         emit TokenSold(msg.sender, id, price);
     }
 
+    /// @notice Allows the contract to receive ETH
     receive() external payable {}
 }

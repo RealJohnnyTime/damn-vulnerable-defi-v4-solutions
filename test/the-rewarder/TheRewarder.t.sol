@@ -185,11 +185,12 @@ contract TheRewarderChallenge is Test {
         uint256 totalClaimsNeeded = 
             (TOTAL_DVT_DISTRIBUTION_AMOUNT / playerDvtAmount) +
             (TOTAL_WETH_DISTRIBUTION_AMOUNT / playerWethAmount);
-        
-        Claim[] memory claims = new Claim[](totalClaimsNeeded);
         uint256 dvtClaims = TOTAL_DVT_DISTRIBUTION_AMOUNT / playerDvtAmount;
+        Claim[] memory claims = new Claim[](totalClaimsNeeded);
 
         // Set up all claims
+        // For example if totalClaimsNeeded = 100, and dvtClaims = 60, then wethClaims = 40
+        // Input claims for example = [DVT, DVT, DVT, DVT, WETH, WETH, WETH]
         for (uint256 i = 0; i < totalClaimsNeeded; i++) {
             claims[i] = Claim({
                 batchNumber: 0,

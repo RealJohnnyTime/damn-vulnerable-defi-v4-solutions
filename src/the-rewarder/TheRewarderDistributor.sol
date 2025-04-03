@@ -68,6 +68,7 @@ contract TheRewarderDistributor {
         emit NewDistribution(token, batchNumber, newRoot, amount);
     }
 
+    // @audit-issue this function is very centralized and dangerous, anyone can call it and sabotage distributions
     function clean(IERC20[] calldata tokens) external {
         for (uint256 i = 0; i < tokens.length; i++) {
             IERC20 token = tokens[i];
