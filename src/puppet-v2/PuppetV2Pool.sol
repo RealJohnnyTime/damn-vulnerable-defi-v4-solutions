@@ -11,6 +11,7 @@ interface IERC20 {
 }
 
 contract PuppetV2Pool {
+
     address private _uniswapPair;
     address private _uniswapFactory;
     IERC20 private _token;
@@ -48,12 +49,15 @@ contract PuppetV2Pool {
     }
 
     function calculateDepositOfWETHRequired(uint256 tokenAmount) public view returns (uint256) {
+        // @audit-info now deposit factory is 3
+        // @audit-info 1 ether is equivalent to 10 ** 18 or 1e18
         uint256 depositFactor = 3;
         return _getOracleQuote(tokenAmount) * depositFactor / 1 ether;
     }
 
     // Fetch the price from Uniswap v2 using the official libraries
     function _getOracleQuote(uint256 amount) private view returns (uint256) {
+        // @audit-info getting the current pair reserves
         (uint256 reservesWETH, uint256 reservesToken) =
             UniswapV2Library.getReserves({factory: _uniswapFactory, tokenA: address(_weth), tokenB: address(_token)});
 

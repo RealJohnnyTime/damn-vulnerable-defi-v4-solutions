@@ -94,6 +94,8 @@ contract FreeRiderNFTMarketplace is ReentrancyGuard {
             revert TokenNotOffered(tokenId);
         }
 
+        // @audit-issue if we buy many nfts, it only checks that we paid for _buyOne
+        // msg.value is going to be the same through all the buyMany for loop iterations..
         if (msg.value < priceToPay) {
             revert InsufficientPayment();
         }

